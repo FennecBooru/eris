@@ -74,6 +74,7 @@ Flags or `ERIS_*` environment variables (see `eris-server --help`):
 | `ERIS_READY_MAX_LAG_S` | `30` | `/ready` unready above this feed lag/staleness |
 | `ERIS_BODY_LIMIT` | `1048576` | request body cap (bytes) |
 | `ERIS_DB_MAX_CONNS` | `10` | connection pool size |
+| `ERIS_CREATE_DATABASE` | `true` | create the database at startup if it doesn't exist |
 | `ERIS_MIGRATE` | `true` | run schema migrations at startup |
 | `ERIS_EVENT_RETENTION_S` | 7 days | event log retention |
 

@@ -17,6 +17,7 @@ fn test_config(database_url: String) -> Config {
     ready_max_lag_s: 30.0,
     body_limit: 1024 * 1024,
     db_max_conns: 5,
+    create_database: true,
     migrate: true,
     prune_interval_s: 3600,
     event_retention_s: 7 * 24 * 3600,

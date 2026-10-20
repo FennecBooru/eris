@@ -284,3 +284,33 @@ async fn prune_deletes_old_events_and_advances_horizon() {
     .unwrap();
   assert_eq!(deleted, 0);
 }
+
+#[tokio::test]
+async fn ensure_database_creates_missing_database() {
+  let Ok(url) = std::env::var("DATABASE_URL") else {
+    eprintln!("skipping ensure_database: DATABASE_URL not set");
+    return;
+  };
+  let admin = PgPool::connect(&url).await.expect("connect admin");
+  let db = "eris_test_ensure_database";
+  sqlx::query(&format!("DROP DATABASE IF EXISTS {db} WITH (FORCE)"))
+    .execute(&admin)
+    .await
+    .expect("drop scratch db");
+
+  let (base, _) = url.rsplit_once('/').expect("URL with database path");
+  let scratch = format!("{base}/{db}");
+  eris_store::ensure_database(&scratch).await.expect("create");
+  // Already exists, so this is a no-op.
+  eris_store::ensure_database(&scratch)
+    .await
+    .expect("idempotent");
+
+  let exists: bool =
+    sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)")
+      .bind(db)
+      .fetch_one(&admin)
+      .await
+      .expect("check db");
+  assert!(exists);
+}

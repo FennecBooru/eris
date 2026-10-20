@@ -33,6 +33,10 @@ pub struct Config {
   #[arg(long, env = "ERIS_DB_MAX_CONNS", default_value_t = 10)]
   pub db_max_conns: u32,
 
+  /// Create the database at startup if it doesn't exist.
+  #[arg(long, env = "ERIS_CREATE_DATABASE", default_value_t = true, action = clap::ArgAction::Set)]
+  pub create_database: bool,
+
   /// Run schema migrations at startup.
   #[arg(long, env = "ERIS_MIGRATE", default_value_t = true, action = clap::ArgAction::Set)]
   pub migrate: bool,

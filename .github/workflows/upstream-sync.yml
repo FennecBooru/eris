@@ -1,0 +1,37 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  UPSTREAM: e621ng
+  BRANCH: master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'fennecbooru'
+    steps:
+      - name: Open a PR when upstream is ahead
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ahead=$(gh api "repos/$REPO/compare/$BRANCH...$UPSTREAM:$BRANCH" --jq .ahead_by)
+          echo "upstream is $ahead commit(s) ahead"
+          [ "$ahead" -gt 0 ] || exit 0
+
+          # the PR tracks upstream's branch directly, so an open one stays current
+          open=$(gh pr list --repo "$REPO" --base "$BRANCH" --state open --json headRepositoryOwner,headRefName \
+            --jq "[.[] | select(.headRepositoryOwner.login == \"$UPSTREAM\" and .headRefName == \"$BRANCH\")] | length")
+          [ "$open" -eq 0 ] || exit 0
+
+          gh pr create --repo "$REPO" --base "$BRANCH" --head "$UPSTREAM:$BRANCH" \
+            --title "Sync with $UPSTREAM/$BRANCH" \
+            --body "$UPSTREAM/$BRANCH is $ahead commit(s) ahead of $BRANCH."

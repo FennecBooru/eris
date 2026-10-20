@@ -40,9 +40,12 @@ pub struct Started {
   pub router: Router,
 }
 
-/// Connect, migrate, bootstrap, and spawn the feed/prune background tasks.
-/// Returns the ready-to-serve router; `serve` binds and runs it.
+/// Create the database, connect, migrate, bootstrap, and spawn the feed/prune
+/// background tasks. Returns the ready-to-serve router; `serve` binds and runs it.
 pub async fn start(config: &Config) -> anyhow::Result<Started> {
+  if config.create_database {
+    eris_store::ensure_database(&config.database_url).await?;
+  }
   let pool = eris_store::connect(&config.database_url, config.db_max_conns).await?;
   if config.migrate {
     eris_store::migrate(&pool).await?;

@@ -1,0 +1,17 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'fennecbooru'
+    steps: [uses: DonovanDMC/publish-to-ghcr@v1]
