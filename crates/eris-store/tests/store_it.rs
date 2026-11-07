@@ -286,6 +286,40 @@ async fn prune_deletes_old_events_and_advances_horizon() {
 }
 
 #[tokio::test]
+async fn bootstrap_after_full_prune_starts_at_horizon() {
+  let Some(pool) = test_pool("full_prune").await else {
+    return;
+  };
+
+  for i in 0..5 {
+    upsert_image(&pool, i, &test_sig(i as u32)).await.unwrap();
+  }
+  sqlx::query("UPDATE image_events SET at = now() - interval '8 days'")
+    .execute(&pool)
+    .await
+    .unwrap();
+  let deleted = prune_events(&pool, Duration::from_secs(7 * 24 * 3600))
+    .await
+    .unwrap()
+    .unwrap();
+  assert_eq!(deleted, 5);
+
+  let snapshot = bootstrap(&pool).await.unwrap();
+  assert_eq!(snapshot.index.len(), 5);
+  assert_eq!(snapshot.cursor, 5);
+
+  // An idle follower from that cursor must not report a horizon breach.
+  let (status_tx, _status_rx) = tokio::sync::watch::channel(FeedStatus {
+    cursor: snapshot.cursor,
+    lag_seconds: 0.0,
+  });
+  let mut follower = Follower::new(pool.clone(), snapshot.cursor, Duration::from_millis(20));
+  let result =
+    tokio::time::timeout(Duration::from_millis(300), follower.run(|_| {}, &status_tx)).await;
+  assert!(result.is_err(), "follower exited: {result:?}");
+}
+
+#[tokio::test]
 async fn ensure_database_creates_missing_database() {
   let Ok(url) = std::env::var("DATABASE_URL") else {
     eprintln!("skipping ensure_database: DATABASE_URL not set");

@@ -24,9 +24,15 @@ pub async fn bootstrap(pool: &PgPool) -> Result<Bootstrap, StoreError> {
     .execute(&mut *tx)
     .await?;
 
-  let cursor: i64 = sqlx::query_scalar("SELECT coalesce(max(seq), 0) FROM image_events")
-    .fetch_one(&mut *tx)
-    .await?;
+  // Floored at the horizon: once every event is pruned the log is empty, and a
+  // cursor of 0 would sit below the horizon and re-bootstrap forever.
+  let cursor: i64 = sqlx::query_scalar(
+    "SELECT greatest(
+         (SELECT coalesce(max(seq), 0) FROM image_events),
+         (SELECT prune_horizon FROM feed_meta))",
+  )
+  .fetch_one(&mut *tx)
+  .await?;
 
   // Rows stream through a bounded channel into a blocking builder thread,
   // capping the memory spike to a few batches while parse and index build
