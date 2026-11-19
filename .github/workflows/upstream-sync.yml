@@ -32,6 +32,6 @@ jobs:
             --jq "[.[] | select(.headRepositoryOwner.login == \"$UPSTREAM\" and .headRefName == \"$BRANCH\")] | length")
           [ "$open" -eq 0 ] || exit 0
 
-          gh pr create --repo "$REPO" --base "$BRANCH" --head "$UPSTREAM:$BRANCH" \
+          gh pr create --repo "$REPO" --base "$BRANCH" --head "$UPSTREAM:$BRANCH" --no-maintainer-edit \
             --title "Sync with $UPSTREAM/$BRANCH" \
             --body "$UPSTREAM/$BRANCH is $ahead commit(s) ahead of $BRANCH."
